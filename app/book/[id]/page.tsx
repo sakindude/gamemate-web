@@ -510,7 +510,7 @@ export default function BookPage() {
     return (
       <main className="min-h-screen bg-[#020617] text-white">
         <TopNav />
-        <div className="mx-auto max-w-5xl px-6 py-10">
+        <div className="mx-auto max-w-6xl px-6 py-10">
           <p className="text-slate-300">Loading booking page...</p>
         </div>
       </main>
@@ -521,272 +521,281 @@ export default function BookPage() {
     <main className="min-h-screen bg-[#020617] text-white">
       <TopNav />
 
-      <section className="mx-auto max-w-5xl px-6 py-10">
-        <div className="rounded-[28px] border border-white/10 bg-[#08122f] p-6 shadow-2xl">
-          <h1 className="text-4xl font-bold">Book Session</h1>
+      <section className="mx-auto max-w-6xl px-6 py-10">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="min-w-0 rounded-[28px] border border-white/10 bg-[#08122f] p-6 shadow-2xl">
+            <h1 className="text-4xl font-bold">Book Session</h1>
 
-          <p className="mt-3 text-slate-300">
-            Booking with <span className="font-semibold text-white">{sellerName}</span>
-          </p>
+            <p className="mt-3 text-slate-300">
+              Booking with <span className="font-semibold text-white">{sellerName}</span>
+            </p>
 
-          <p className="mt-1 text-slate-400">
-            Hourly price:{' '}
-            <span className="font-semibold text-white">{formatMoney(hourlyPrice)}</span>
-          </p>
+            <p className="mt-1 text-slate-400">
+              Hourly price:{' '}
+              <span className="font-semibold text-white">{formatMoney(hourlyPrice)}</span>
+            </p>
 
-          <div className="mt-8">
-            <p className="mb-4 text-xl font-semibold">Select Day</p>
+            <div className="mt-8">
+              <p className="mb-4 text-xl font-semibold">Select Day</p>
 
-            {dayOptionsLoading ? (
-              <p className="text-slate-400">Loading available days...</p>
-            ) : (
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7">
-                {dayOptions.map((day) => {
-                  const isSelected = selectedDate === day.value
+              {dayOptionsLoading ? (
+                <p className="text-slate-400">Loading available days...</p>
+              ) : (
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7">
+                  {dayOptions.map((day) => {
+                    const isSelected = selectedDate === day.value
+
+                    return (
+                      <button
+                        key={day.value}
+                        type="button"
+                        onClick={() => setSelectedDate(day.value)}
+                        className={`rounded-2xl border px-4 py-4 text-left transition ${
+                          isSelected
+                            ? 'border-indigo-400/50 bg-indigo-600 text-white'
+                            : day.isClosed
+                            ? 'border-slate-700 bg-slate-800 text-slate-300'
+                            : day.isFull
+                            ? 'border-red-500/30 bg-red-500/15 text-red-200'
+                            : 'border-emerald-400/20 bg-[#1a2742] text-white hover:bg-[#243452]'
+                        }`}
+                      >
+                        <div className="text-base font-bold">{day.labelTop}</div>
+                        <div className="mt-1 text-sm opacity-90">{day.labelBottom}</div>
+                        <div className="mt-3 text-xs font-semibold uppercase tracking-wide opacity-80">
+                          {day.shortStatus}
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+
+              <div className="mt-4 flex flex-wrap justify-end gap-4 text-sm text-slate-400">
+                <LegendChip label="Available" className="bg-emerald-400" />
+                <LegendChip label="Selected" className="bg-indigo-400" />
+                <LegendChip label="Booked" className="bg-red-500" />
+                <LegendChip label="Closed" className="bg-slate-500" />
+                <LegendChip label="Past" className="bg-slate-700" />
+              </div>
+            </div>
+
+            <div className="mt-8">
+              <p className="mb-4 text-xl font-semibold">Select Time Slots</p>
+
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-6">
+                {TIME_SLOTS.map((slot) => {
+                  const isSelected = selectedSlots.includes(slot)
+                  const isBooked = bookedSlots.includes(slot)
+                  const isClosed = !openSlots.includes(slot)
+                  const isPast = isPastHour(selectedDate, slot)
+
+                  let className =
+                    'rounded-2xl px-4 py-3 text-sm font-semibold transition '
+
+                  if (isPast) {
+                    className += 'cursor-not-allowed bg-slate-900 text-slate-500'
+                  } else if (isBooked) {
+                    className += 'cursor-not-allowed bg-red-600/90 text-white'
+                  } else if (isClosed) {
+                    className += 'cursor-not-allowed bg-slate-800 text-slate-400'
+                  } else if (isSelected) {
+                    className += 'bg-indigo-600 text-white'
+                  } else {
+                    className += 'bg-[#1a2742] text-white ring-1 ring-emerald-400/20 hover:bg-[#243452]'
+                  }
 
                   return (
                     <button
-                      key={day.value}
+                      key={slot}
                       type="button"
-                      onClick={() => setSelectedDate(day.value)}
-                      className={`rounded-2xl border px-4 py-4 text-left transition ${
-                        isSelected
-                          ? 'border-indigo-400/50 bg-indigo-600 text-white'
-                          : day.isClosed
-                          ? 'border-slate-700 bg-slate-800 text-slate-300'
-                          : day.isFull
-                          ? 'border-red-500/30 bg-red-500/15 text-red-200'
-                          : 'border-emerald-400/20 bg-[#1a2742] text-white hover:bg-[#243452]'
-                      }`}
+                      disabled={isPast || isBooked || isClosed}
+                      onClick={() => toggleSlot(slot)}
+                      className={className}
                     >
-                      <div className="text-base font-bold">{day.labelTop}</div>
-                      <div className="mt-1 text-sm opacity-90">{day.labelBottom}</div>
-                      <div className="mt-3 text-xs font-semibold uppercase tracking-wide opacity-80">
-                        {day.shortStatus}
-                      </div>
+                      {slot}
                     </button>
                   )
                 })}
               </div>
-            )}
 
-            <div className="mt-4 flex flex-wrap justify-end gap-4 text-sm text-slate-400">
-              <LegendChip label="Available" className="bg-emerald-400" />
-              <LegendChip label="Selected" className="bg-indigo-400" />
-              <LegendChip label="Booked" className="bg-red-500" />
-              <LegendChip label="Closed" className="bg-slate-500" />
-              <LegendChip label="Past" className="bg-slate-700" />
-            </div>
-          </div>
-
-          <div className="mt-8">
-            <p className="mb-4 text-xl font-semibold">Select Time Slots</p>
-
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-6">
-              {TIME_SLOTS.map((slot) => {
-                const isSelected = selectedSlots.includes(slot)
-                const isBooked = bookedSlots.includes(slot)
-                const isClosed = !openSlots.includes(slot)
-                const isPast = isPastHour(selectedDate, slot)
-
-                let className =
-                  'rounded-2xl px-4 py-3 text-sm font-semibold transition '
-
-                if (isPast) {
-                  className += 'cursor-not-allowed bg-slate-900 text-slate-500'
-                } else if (isBooked) {
-                  className += 'cursor-not-allowed bg-red-600/90 text-white'
-                } else if (isClosed) {
-                  className += 'cursor-not-allowed bg-slate-800 text-slate-400'
-                } else if (isSelected) {
-                  className += 'bg-indigo-600 text-white'
-                } else {
-                  className += 'bg-[#1a2742] text-white ring-1 ring-emerald-400/20 hover:bg-[#243452]'
-                }
-
-                return (
-                  <button
-                    key={slot}
-                    type="button"
-                    disabled={isPast || isBooked || isClosed}
-                    onClick={() => toggleSlot(slot)}
-                    className={className}
-                  >
-                    {slot}
-                  </button>
-                )
-              })}
-            </div>
-
-            <div className="mt-4 flex flex-wrap justify-end gap-4 text-sm text-slate-400">
-              <LegendChip label="Available" className="bg-emerald-400" />
-              <LegendChip label="Selected" className="bg-indigo-400" />
-              <LegendChip label="Booked" className="bg-red-500" />
-              <LegendChip label="Closed" className="bg-slate-500" />
-              <LegendChip label="Past" className="bg-slate-700" />
-            </div>
-          </div>
-
-          <div className="mt-10">
-            <p className="mb-4 text-xl font-semibold">Select Game</p>
-            <div className="flex flex-wrap gap-3">
-              {GAMES.map((game) => {
-                const isSelected = selectedGame === game
-
-                return (
-                  <button
-                    key={game}
-                    type="button"
-                    onClick={() => setSelectedGame(game)}
-                    className={`rounded-full px-5 py-3 text-sm font-semibold transition ${
-                      isSelected
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-[#1a2742] text-white hover:bg-[#243452]'
-                    }`}
-                  >
-                    {game}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          <div className="mt-10">
-            <p className="mb-4 text-xl font-semibold">Select Communication Method</p>
-            <div className="flex flex-wrap gap-3">
-              {COMMUNICATION_METHODS.map((method) => {
-                const isSelected = selectedCommunicationMethod === method
-
-                return (
-                  <button
-                    key={method}
-                    type="button"
-                    onClick={() => setSelectedCommunicationMethod(method)}
-                    className={`rounded-full px-5 py-3 text-sm font-semibold transition ${
-                      isSelected
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-[#1a2742] text-white hover:bg-[#243452]'
-                    }`}
-                  >
-                    {method}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          <div className="mt-10">
-            <label className="mb-3 block text-xl font-semibold">Tip (optional)</label>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={tipInput}
-              onChange={(e) => setTipInput(e.target.value)}
-              placeholder="0"
-              className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#1d2a44] px-4 py-4 text-lg text-white outline-none"
-            />
-            <p className="mt-3 text-sm text-slate-400">Tip goes fully to the GameMate.</p>
-          </div>
-
-          <div className="mt-10 rounded-[24px] border-2 border-red-500 bg-[#050f26] p-5">
-            <div className="mb-3 rounded-xl bg-red-600 px-4 py-3 text-sm font-bold text-white">
-              DEBUG NEW BOOK SUMMARY ACTIVE
-            </div>
-
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-xl font-bold text-indigo-300">Booking Summary</h2>
-              <div className="rounded-full border border-indigo-400/20 bg-indigo-500/10 px-3 py-1 text-sm font-semibold text-indigo-200">
-                {slotCount} hour{slotCount === 1 ? '' : 's'} selected
+              <div className="mt-4 flex flex-wrap justify-end gap-4 text-sm text-slate-400">
+                <LegendChip label="Available" className="bg-emerald-400" />
+                <LegendChip label="Selected" className="bg-indigo-400" />
+                <LegendChip label="Booked" className="bg-red-500" />
+                <LegendChip label="Closed" className="bg-slate-500" />
+                <LegendChip label="Past" className="bg-slate-700" />
               </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="rounded-2xl border border-white/10 bg-[#08122f] p-4">
-                <div className="text-xs uppercase tracking-wide text-slate-400">Date</div>
-                <div className="mt-2 text-lg font-semibold text-white">
-                  {selectedDate || 'No day selected'}
-                </div>
-              </div>
+            <div className="mt-10">
+              <p className="mb-4 text-xl font-semibold">Select Game</p>
+              <div className="flex flex-wrap gap-3">
+                {GAMES.map((game) => {
+                  const isSelected = selectedGame === game
 
-              <div className="rounded-2xl border border-white/10 bg-[#08122f] p-4">
-                <div className="text-xs uppercase tracking-wide text-slate-400">Hourly Price</div>
-                <div className="mt-2 text-lg font-semibold text-white">
-                  {formatMoney(hourlyPrice)}
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-4 rounded-2xl border border-white/10 bg-[#08122f] p-4">
-              <div className="mb-3 text-xs uppercase tracking-wide text-slate-400">
-                Selected Time Slots
-              </div>
-
-              {selectedSlotRanges.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {selectedSlotRanges.map((slot) => (
-                    <span
-                      key={slot}
-                      className="rounded-full bg-indigo-600/20 px-3 py-1.5 text-sm font-medium text-indigo-200"
+                  return (
+                    <button
+                      key={game}
+                      type="button"
+                      onClick={() => setSelectedGame(game)}
+                      className={`rounded-full px-5 py-3 text-sm font-semibold transition ${
+                        isSelected
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-[#1a2742] text-white hover:bg-[#243452]'
+                      }`}
                     >
-                      {slot}
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-slate-400">No time slots selected yet.</p>
-              )}
-            </div>
-          </div>
-
-          <div className="mt-10 rounded-[24px] border border-white/10 bg-[#061127] p-5">
-            <div className="mb-2 text-sm text-slate-400">
-              {slotCount} hour{slotCount === 1 ? '' : 's'} × {formatMoney(hourlyPrice)}
-            </div>
-
-            <div className="mb-3 flex items-center justify-between text-lg">
-              <span className="text-slate-200">Service</span>
-              <span className="font-medium text-white">{formatMoney(serviceAmount)}</span>
-            </div>
-
-            <div className="mb-3 flex items-center justify-between text-lg">
-              <span className="text-slate-200">Tip</span>
-              <span className="font-medium text-white">{formatMoney(tipAmount)}</span>
-            </div>
-
-            <div className="mb-4 flex items-center justify-between text-lg">
-              <span className="text-slate-200">Processing fee</span>
-              <span className="font-medium text-white">{formatMoney(processingFee)}</span>
-            </div>
-
-            <div className="border-t border-white/10 pt-4">
-              <div className="flex items-center justify-between text-2xl font-bold">
-                <span>Total</span>
-                <span className="text-3xl text-emerald-400">{formatMoney(totalAmount)}</span>
+                      {game}
+                    </button>
+                  )
+                })}
               </div>
             </div>
+
+            <div className="mt-10">
+              <p className="mb-4 text-xl font-semibold">Select Communication Method</p>
+              <div className="flex flex-wrap gap-3">
+                {COMMUNICATION_METHODS.map((method) => {
+                  const isSelected = selectedCommunicationMethod === method
+
+                  return (
+                    <button
+                      key={method}
+                      type="button"
+                      onClick={() => setSelectedCommunicationMethod(method)}
+                      className={`rounded-full px-5 py-3 text-sm font-semibold transition ${
+                        isSelected
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-[#1a2742] text-white hover:bg-[#243452]'
+                      }`}
+                    >
+                      {method}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="mt-10">
+              <label className="mb-3 block text-xl font-semibold">Tip (optional)</label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={tipInput}
+                onChange={(e) => setTipInput(e.target.value)}
+                placeholder="0"
+                className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#1d2a44] px-4 py-4 text-lg text-white outline-none"
+              />
+              <p className="mt-3 text-sm text-slate-400">Tip goes fully to the GameMate.</p>
+            </div>
           </div>
 
-          <p className="mt-6 text-center text-sm text-slate-400">
-            Booking will be created instantly after confirmation.
-          </p>
+          <aside className="min-w-0">
+            <div className="lg:sticky lg:top-24">
+              <div className="rounded-[28px] border border-white/10 bg-[#08122f] p-5 shadow-2xl">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                  <h2 className="text-xl font-bold text-indigo-300">Booking Summary</h2>
+                  <div className="rounded-full border border-indigo-400/20 bg-indigo-500/10 px-3 py-1 text-sm font-semibold text-indigo-200">
+                    {slotCount} hour{slotCount === 1 ? '' : 's'} selected
+                  </div>
+                </div>
 
-          <button
-            type="button"
-            disabled={submitting}
-            onClick={handleConfirmBooking}
-            className="mt-8 w-full rounded-[20px] bg-indigo-600 px-6 py-5 text-xl font-bold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {submitting ? 'Confirming Booking...' : 'Confirm Booking'}
-          </button>
+                <div className="grid gap-3">
+                  <div className="rounded-2xl border border-white/10 bg-[#050f26] p-4">
+                    <div className="text-xs uppercase tracking-wide text-slate-400">Date</div>
+                    <div className="mt-2 text-base font-semibold text-white">
+                      {selectedDate || 'No day selected'}
+                    </div>
+                  </div>
 
-          {errorText ? (
-            <p className="mt-5 text-base font-medium text-red-400">{errorText}</p>
-          ) : null}
+                  <div className="rounded-2xl border border-white/10 bg-[#050f26] p-4">
+                    <div className="text-xs uppercase tracking-wide text-slate-400">Game</div>
+                    <div className="mt-2 text-base font-semibold text-white">
+                      {selectedGame || 'No game selected'}
+                    </div>
+                  </div>
 
-          {successText ? (
-            <p className="mt-5 text-base font-medium text-emerald-400">{successText}</p>
-          ) : null}
+                  <div className="rounded-2xl border border-white/10 bg-[#050f26] p-4">
+                    <div className="text-xs uppercase tracking-wide text-slate-400">Communication</div>
+                    <div className="mt-2 text-base font-semibold text-white">
+                      {selectedCommunicationMethod || 'No method selected'}
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-white/10 bg-[#050f26] p-4">
+                    <div className="mb-3 text-xs uppercase tracking-wide text-slate-400">
+                      Selected Time Slots
+                    </div>
+
+                    {selectedSlotRanges.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {selectedSlotRanges.map((slot) => (
+                          <span
+                            key={slot}
+                            className="rounded-full bg-indigo-600/20 px-3 py-1.5 text-sm font-medium text-indigo-200"
+                          >
+                            {slot}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-slate-400">No time slots selected yet.</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-4 rounded-[24px] border border-white/10 bg-[#061127] p-5">
+                  <div className="mb-2 text-sm text-slate-400">
+                    {slotCount} hour{slotCount === 1 ? '' : 's'} × {formatMoney(hourlyPrice)}
+                  </div>
+
+                  <div className="mb-3 flex items-center justify-between text-lg">
+                    <span className="text-slate-200">Service</span>
+                    <span className="font-medium text-white">{formatMoney(serviceAmount)}</span>
+                  </div>
+
+                  <div className="mb-3 flex items-center justify-between text-lg">
+                    <span className="text-slate-200">Tip</span>
+                    <span className="font-medium text-white">{formatMoney(tipAmount)}</span>
+                  </div>
+
+                  <div className="mb-4 flex items-center justify-between text-lg">
+                    <span className="text-slate-200">Processing fee</span>
+                    <span className="font-medium text-white">{formatMoney(processingFee)}</span>
+                  </div>
+
+                  <div className="border-t border-white/10 pt-4">
+                    <div className="flex items-center justify-between text-2xl font-bold">
+                      <span>Total</span>
+                      <span className="text-3xl text-emerald-400">{formatMoney(totalAmount)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <p className="mt-5 text-center text-sm text-slate-400">
+                  Booking will be created instantly after confirmation.
+                </p>
+
+                <button
+                  type="button"
+                  disabled={submitting}
+                  onClick={handleConfirmBooking}
+                  className="mt-5 w-full rounded-[20px] bg-indigo-600 px-6 py-4 text-lg font-bold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {submitting ? 'Confirming Booking...' : 'Confirm Booking'}
+                </button>
+
+                {errorText ? (
+                  <p className="mt-5 text-base font-medium text-red-400">{errorText}</p>
+                ) : null}
+
+                {successText ? (
+                  <p className="mt-5 text-base font-medium text-emerald-400">{successText}</p>
+                ) : null}
+              </div>
+            </div>
+          </aside>
         </div>
       </section>
     </main>

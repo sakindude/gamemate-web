@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import TopNav from '../../components/TopNav'
@@ -192,6 +192,22 @@ export default function ChatPage() {
   const audioArmedRef = useRef(false)
   const visibilityRef = useRef<'visible' | 'hidden'>('visible')
   const lastReadSyncAtRef = useRef<Record<string, number>>({})
+
+  useLayoutEffect(() => {
+    document.title = 'Chat | GameMate'
+  }, [])
+
+  useEffect(() => {
+    document.title = 'Chat | GameMate'
+
+    const titleTimer = window.setTimeout(() => {
+      document.title = 'Chat | GameMate'
+    }, 50)
+
+    return () => {
+      window.clearTimeout(titleTimer)
+    }
+  }, [])
 
   useEffect(() => {
     userIdRef.current = userId

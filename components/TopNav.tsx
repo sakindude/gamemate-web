@@ -481,6 +481,8 @@ export default function TopNav({ userEmail = '' }: TopNavProps) {
   const isSessionsActive = pathname === '/sessions'
   const isChatActive = pathname.startsWith('/chat')
   const isAvailabilityActive = pathname === '/availability'
+  const isGuideActive = pathname === '/guide'
+  const isRulesActive = pathname === '/rules'
 
   return (
     <header className="border-b border-slate-800 bg-slate-950/95 backdrop-blur">
@@ -503,6 +505,8 @@ export default function TopNav({ userEmail = '' }: TopNavProps) {
             <NavLink href="/sessions" active={isSessionsActive} label="Sessions" badgeCount={sessionsBadge} />
             <NavLink href="/chat" active={isChatActive} label="Chat" badgeCount={chatBadge} />
             <NavLink href="/availability" active={isAvailabilityActive} label="Availability" />
+            <NavLink href="/guide" active={isGuideActive} label="Guide" />
+            <NavLink href="/rules" active={isRulesActive} label="Rules" />
             <NavLink href="/profile-edit" active={pathname === '/profile-edit'} label="Profile" />
             <NavLink href="/support" active={pathname === '/support'} label="Support" badgeCount={supportBadge} />
           </div>
@@ -541,6 +545,8 @@ export default function TopNav({ userEmail = '' }: TopNavProps) {
         <NavLink href="/sessions" active={isSessionsActive} label="Sessions" badgeCount={sessionsBadge} />
         <NavLink href="/chat" active={isChatActive} label="Chat" badgeCount={chatBadge} />
         <NavLink href="/availability" active={isAvailabilityActive} label="Availability" />
+        <NavLink href="/guide" active={isGuideActive} label="Guide" />
+        <NavLink href="/rules" active={isRulesActive} label="Rules" />
         <NavLink href="/profile-edit" active={pathname === '/profile-edit'} label="Profile" />
         <NavLink href="/support" active={pathname === '/support'} label="Support" badgeCount={supportBadge} />
       </div>

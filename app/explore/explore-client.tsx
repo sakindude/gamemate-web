@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import TopNav from '../../components/TopNav'
@@ -220,6 +220,22 @@ export default function ExploreClient() {
   const [minPrice, setMinPrice] = useState(() => getParam(searchParams, 'min'))
   const [maxPrice, setMaxPrice] = useState(() => getParam(searchParams, 'max'))
   const [sortMode, setSortMode] = useState<SortMode>(() => getInitialSort(searchParams))
+
+  useLayoutEffect(() => {
+    document.title = 'Explore | GameMate'
+  }, [])
+
+  useEffect(() => {
+    document.title = 'Explore | GameMate'
+
+    const titleTimer = window.setTimeout(() => {
+      document.title = 'Explore | GameMate'
+    }, 50)
+
+    return () => {
+      window.clearTimeout(titleTimer)
+    }
+  }, [])
 
   useEffect(() => {
     const load = async () => {
