@@ -18,9 +18,9 @@ type Transaction = {
   created_at: string
 }
 
-function formatMoney(cents: number | null | undefined, currencySymbol = '₺') {
+function formatMoney(cents: number | null | undefined) {
   const safe = Number(cents || 0)
-  return `${currencySymbol}${(safe / 100).toFixed(2)}`
+  return `$${(safe / 100).toFixed(2)}`
 }
 
 function toCents(amount: string) {

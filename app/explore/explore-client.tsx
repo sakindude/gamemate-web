@@ -14,6 +14,7 @@ type Profile = {
   gender: string | null
   hourly_price: number | null
   is_seller: boolean | null
+  is_online: boolean | null
   primary_games: string[] | null
   languages: string[] | null
   communication_methods: string[] | null
@@ -49,6 +50,33 @@ type FilterChip = {
 type FavoriteRow = {
   seller_id: string
 }
+
+type BusyState =
+  | 'pending'
+  | 'ready_to_start'
+  | 'active'
+  | 'awaiting_confirmation_seller_action'
+
+type PendingBookingRow = {
+  id: string
+  seller_id: string
+  status: 'pending'
+}
+
+type BlockingSessionRow = {
+  id: string
+  seller_id: string
+  status: 'ready_to_start' | 'active' | 'awaiting_confirmation'
+  seller_completed_at: string | null
+}
+
+type BusyInfo = {
+  itemId: string
+  status: BusyState
+  priority: number
+}
+
+type BusyInfoMap = Record<string, BusyInfo>
 
 const VALID_SORTS: SortMode[] = [
   'best_rated',
@@ -188,6 +216,75 @@ function sortModeLabel(sortMode: SortMode) {
   }
 }
 
+function onlineMeta(isOnline: boolean | null) {
+  if (isOnline) {
+    return {
+      label: 'Online',
+      className: 'border-emerald-500/30 bg-emerald-500/15 text-emerald-300',
+    }
+  }
+
+  return {
+    label: 'Offline',
+    className: 'border-slate-700 bg-slate-800 text-slate-300',
+  }
+}
+
+function getBusyPriority(status: BusyState) {
+  switch (status) {
+    case 'pending':
+      return 1
+    case 'ready_to_start':
+      return 2
+    case 'active':
+      return 3
+    case 'awaiting_confirmation_seller_action':
+      return 4
+    default:
+      return 99
+  }
+}
+
+function getBusyMeta(status: BusyState) {
+  switch (status) {
+    case 'pending':
+      return {
+        badgeLabel: 'Incoming Booking',
+        badgeClassName: 'border-amber-500/30 bg-amber-500/15 text-amber-300',
+        description:
+          'This GameMate already has a pending booking request. New bookings stay blocked until that request is accepted, rejected, or times out.',
+      }
+    case 'ready_to_start':
+      return {
+        badgeLabel: 'Reserved',
+        badgeClassName: 'border-blue-500/30 bg-blue-500/15 text-blue-300',
+        description:
+          'This GameMate already has an accepted session waiting to start. New bookings stay blocked until that flow is resolved.',
+      }
+    case 'active':
+      return {
+        badgeLabel: 'Currently Playing',
+        badgeClassName: 'border-cyan-500/30 bg-cyan-500/15 text-cyan-300',
+        description:
+          'This GameMate is in an active session right now. You can still open the profile and chat, but booking is temporarily unavailable.',
+      }
+    case 'awaiting_confirmation_seller_action':
+      return {
+        badgeLabel: 'Needs Completion',
+        badgeClassName: 'border-purple-500/30 bg-purple-500/15 text-purple-300',
+        description:
+          'This GameMate still has a session waiting for seller-side completion. New bookings stay blocked until that is finished.',
+      }
+    default:
+      return {
+        badgeLabel: 'Busy',
+        badgeClassName: 'border-amber-500/30 bg-amber-500/15 text-amber-300',
+        description:
+          'This GameMate is temporarily unavailable for new bookings.',
+      }
+  }
+}
+
 export default function ExploreClient() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -200,6 +297,7 @@ export default function ExploreClient() {
   const [currentUserId, setCurrentUserId] = useState('')
   const [favoriteSellerIds, setFavoriteSellerIds] = useState<string[]>([])
   const [favoriteBusySellerId, setFavoriteBusySellerId] = useState<string>('')
+  const [busyInfoMap, setBusyInfoMap] = useState<BusyInfoMap>({})
 
   const [searchText, setSearchText] = useState(() => getParam(searchParams, 'q'))
   const [selectedGame, setSelectedGame] = useState(
@@ -216,6 +314,9 @@ export default function ExploreClient() {
   )
   const [favoritesOnly, setFavoritesOnly] = useState(
     () => getParam(searchParams, 'favorites') === '1'
+  )
+  const [onlineOnly, setOnlineOnly] = useState(
+    () => getParam(searchParams, 'online') === '1'
   )
   const [minPrice, setMinPrice] = useState(() => getParam(searchParams, 'min'))
   const [maxPrice, setMaxPrice] = useState(() => getParam(searchParams, 'max'))
@@ -258,7 +359,7 @@ export default function ExploreClient() {
         supabase
           .from('profiles')
           .select(
-            'id, display_name, bio, country, gender, hourly_price, is_seller, primary_games, languages, communication_methods'
+            'id, display_name, bio, country, gender, hourly_price, is_seller, is_online, primary_games, languages, communication_methods'
           )
           .eq('is_seller', true)
           .order('display_name', { ascending: true }),
@@ -271,8 +372,10 @@ export default function ExploreClient() {
           .eq('user_id', session.user.id),
       ])
 
+      const sellerRows = (profileData || []) as Profile[]
+
       if (!profileError) {
-        setProfiles((profileData || []) as Profile[])
+        setProfiles(sellerRows)
       }
 
       const ratingMap: RatingMap = {}
@@ -285,11 +388,82 @@ export default function ExploreClient() {
       setRatings(ratingMap)
 
       if (!favoriteError) {
-        setFavoriteSellerIds(
-          ((favoriteData || []) as FavoriteRow[]).map((row) => row.seller_id)
-        )
+        setFavoriteSellerIds(((favoriteData || []) as FavoriteRow[]).map((row) => row.seller_id))
       }
 
+      const sellerIds = sellerRows.map((row) => row.id)
+      const nextBusyMap: BusyInfoMap = {}
+
+      if (sellerIds.length > 0) {
+        const [
+          { data: pendingBookingData, error: pendingBookingError },
+          { data: blockingSessionData, error: blockingSessionError },
+        ] = await Promise.all([
+          supabase
+            .from('booking_requests')
+            .select('id, seller_id, status')
+            .in('seller_id', sellerIds)
+            .eq('status', 'pending'),
+
+          supabase
+            .from('sessions')
+            .select('id, seller_id, status, seller_completed_at')
+            .in('seller_id', sellerIds)
+            .or(
+              [
+                'status.eq.ready_to_start',
+                'status.eq.active',
+                'and(status.eq.awaiting_confirmation,seller_completed_at.is.null)',
+              ].join(',')
+            ),
+        ])
+
+        if (pendingBookingError) {
+          console.error('pending booking busy load error:', pendingBookingError)
+        } else {
+          ;((pendingBookingData || []) as PendingBookingRow[]).forEach((row) => {
+            const priority = getBusyPriority('pending')
+            const existing = nextBusyMap[row.seller_id]
+
+            if (!existing || priority < existing.priority) {
+              nextBusyMap[row.seller_id] = {
+                itemId: row.id,
+                status: 'pending',
+                priority,
+              }
+            }
+          })
+        }
+
+        if (blockingSessionError) {
+          console.error('blocking session busy load error:', blockingSessionError)
+        } else {
+          ;((blockingSessionData || []) as BlockingSessionRow[]).forEach((row) => {
+            let mappedStatus: BusyState = 'active'
+
+            if (row.status === 'ready_to_start') {
+              mappedStatus = 'ready_to_start'
+            } else if (row.status === 'active') {
+              mappedStatus = 'active'
+            } else {
+              mappedStatus = 'awaiting_confirmation_seller_action'
+            }
+
+            const priority = getBusyPriority(mappedStatus)
+            const existing = nextBusyMap[row.seller_id]
+
+            if (!existing || priority < existing.priority) {
+              nextBusyMap[row.seller_id] = {
+                itemId: row.id,
+                status: mappedStatus,
+                priority,
+              }
+            }
+          })
+        }
+      }
+
+      setBusyInfoMap(nextBusyMap)
       setLoading(false)
     }
 
@@ -310,6 +484,7 @@ export default function ExploreClient() {
     if (selectedCommunication !== 'all') params.set('comm', selectedCommunication)
     if (selectedCountry !== 'all') params.set('country', selectedCountry)
     if (favoritesOnly) params.set('favorites', '1')
+    if (onlineOnly) params.set('online', '1')
     if (minPrice.trim()) params.set('min', minPrice.trim())
     if (maxPrice.trim()) params.set('max', maxPrice.trim())
     if (sortMode !== 'best_rated') params.set('sort', sortMode)
@@ -318,7 +493,9 @@ export default function ExploreClient() {
     const currentQuery = searchParams.toString()
 
     if (nextQuery !== currentQuery) {
-      router.replace(nextQuery ? `/explore?${nextQuery}` : '/explore', { scroll: false })
+      router.replace(nextQuery ? `/explore?${nextQuery}` : '/explore', {
+        scroll: false,
+      })
     }
   }, [
     searchText,
@@ -327,6 +504,7 @@ export default function ExploreClient() {
     selectedCommunication,
     selectedCountry,
     favoritesOnly,
+    onlineOnly,
     minPrice,
     maxPrice,
     sortMode,
@@ -387,8 +565,8 @@ export default function ExploreClient() {
     const min = minPrice === '' ? null : Number(minPrice)
     const max = maxPrice === '' ? null : Number(maxPrice)
 
-    let next = [...profiles].filter((profile) => {
-      if (profile.id === currentUserId) return false
+    const next = [...profiles].filter((profile) => {
+      const isSelf = profile.id === currentUserId
 
       const profileName = normalizeText(profile.display_name)
       const profileBio = normalizeText(profile.bio)
@@ -408,13 +586,18 @@ export default function ExploreClient() {
         languages.some((lang) => lang.includes(query)) ||
         communicationMethods.some((method) => method.includes(query))
 
-      if (!matchesSearch) return false
+      if (!isSelf && !matchesSearch) return false
 
-      if (selectedGame !== 'all' && !games.includes(normalizeText(selectedGame))) {
+      if (
+        !isSelf &&
+        selectedGame !== 'all' &&
+        !games.includes(normalizeText(selectedGame))
+      ) {
         return false
       }
 
       if (
+        !isSelf &&
         selectedLanguage !== 'all' &&
         !languages.includes(normalizeText(selectedLanguage))
       ) {
@@ -422,6 +605,7 @@ export default function ExploreClient() {
       }
 
       if (
+        !isSelf &&
         selectedCommunication !== 'all' &&
         !communicationMethods.includes(normalizeText(selectedCommunication))
       ) {
@@ -429,21 +613,26 @@ export default function ExploreClient() {
       }
 
       if (
+        !isSelf &&
         selectedCountry !== 'all' &&
         profileCountry !== normalizeText(selectedCountry)
       ) {
         return false
       }
 
-      if (favoritesOnly && !isFavorite) {
+      if (!isSelf && favoritesOnly && !isFavorite) {
         return false
       }
 
-      if (min !== null && Number.isFinite(min) && price < min) {
+      if (!isSelf && onlineOnly && !profile.is_online) {
         return false
       }
 
-      if (max !== null && Number.isFinite(max) && price > max) {
+      if (!isSelf && min !== null && Number.isFinite(min) && price < min) {
+        return false
+      }
+
+      if (!isSelf && max !== null && Number.isFinite(max) && price > max) {
         return false
       }
 
@@ -451,6 +640,12 @@ export default function ExploreClient() {
     })
 
     next.sort((a, b) => {
+      const isSelfA = a.id === currentUserId
+      const isSelfB = b.id === currentUserId
+
+      if (isSelfA && !isSelfB) return -1
+      if (!isSelfA && isSelfB) return 1
+
       const ratingA = ratings[a.id]?.avg_rating ?? -1
       const ratingB = ratings[b.id]?.avg_rating ?? -1
       const reviewsA = ratings[a.id]?.review_count ?? 0
@@ -500,6 +695,7 @@ export default function ExploreClient() {
     selectedCommunication,
     selectedCountry,
     favoritesOnly,
+    onlineOnly,
     minPrice,
     maxPrice,
     sortMode,
@@ -513,6 +709,7 @@ export default function ExploreClient() {
     setSelectedCommunication('all')
     setSelectedCountry('all')
     setFavoritesOnly(false)
+    setOnlineOnly(false)
     setMinPrice('')
     setMaxPrice('')
     setSortMode('best_rated')
@@ -535,12 +732,10 @@ export default function ExploreClient() {
         setFavoriteSellerIds((prev) => prev.filter((id) => id !== sellerId))
       }
     } else {
-      const { error } = await supabase
-        .from('favorite_sellers')
-        .insert({
-          user_id: currentUserId,
-          seller_id: sellerId,
-        })
+      const { error } = await supabase.from('favorite_sellers').insert({
+        user_id: currentUserId,
+        seller_id: sellerId,
+      })
 
       if (!error) {
         setFavoriteSellerIds((prev) => Array.from(new Set([...prev, sellerId])))
@@ -601,6 +796,14 @@ export default function ExploreClient() {
       })
     }
 
+    if (onlineOnly) {
+      next.push({
+        key: 'online',
+        label: 'Online Only',
+        onRemove: () => setOnlineOnly(false),
+      })
+    }
+
     if (minPrice.trim()) {
       next.push({
         key: 'min',
@@ -633,6 +836,7 @@ export default function ExploreClient() {
     selectedCommunication,
     selectedCountry,
     favoritesOnly,
+    onlineOnly,
     minPrice,
     maxPrice,
     sortMode,
@@ -648,7 +852,7 @@ export default function ExploreClient() {
         <div className="mb-8">
           <h1 className="text-4xl font-bold">Find GameMates</h1>
           <p className="mt-2 text-slate-400">
-            Browse available GameMates and find someone that fits your vibe.
+            Browse GameMates, check who is online, and save profiles for later.
           </p>
         </div>
 
@@ -658,7 +862,7 @@ export default function ExploreClient() {
               <div className="text-lg font-bold">Filters</div>
               <p className="mt-1 text-sm text-slate-400">
                 Narrow down results by game, language, communication, country,
-                favorites, and price.
+                favorites, online status, and price.
               </p>
             </div>
 
@@ -817,6 +1021,22 @@ export default function ExploreClient() {
 
             <div>
               <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-400">
+                Online
+              </label>
+              <button
+                onClick={() => setOnlineOnly((prev) => !prev)}
+                className={`w-full rounded-xl border px-4 py-3 text-sm font-semibold transition ${
+                  onlineOnly
+                    ? 'border-emerald-500 bg-emerald-600 text-white'
+                    : 'border-slate-700 bg-slate-950 text-slate-200 hover:bg-slate-900'
+                }`}
+              >
+                {onlineOnly ? 'Online Only: ON' : 'Online Only: OFF'}
+              </button>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-400">
                 Min Price
               </label>
               <input
@@ -859,6 +1079,10 @@ export default function ExploreClient() {
             const rating = ratings[p.id]
             const isFavorite = favoriteSellerIds.includes(p.id)
             const favoriteBusy = favoriteBusySellerId === p.id
+            const online = onlineMeta(p.is_online)
+            const isSelf = p.id === currentUserId
+            const busyInfo = busyInfoMap[p.id]
+            const busyMeta = busyInfo ? getBusyMeta(busyInfo.status) : null
 
             return (
               <div
@@ -866,9 +1090,32 @@ export default function ExploreClient() {
                 className="flex h-full flex-col rounded-2xl border border-slate-800 bg-slate-900 p-5"
               >
                 <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="text-xl font-bold">
-                      {p.display_name || 'Unknown GameMate'}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <div className="truncate text-xl font-bold">
+                        {p.display_name || 'Unknown GameMate'}
+                      </div>
+
+                      {isSelf && (
+                        <span className="rounded-full border border-indigo-500/30 bg-indigo-500/15 px-3 py-1 text-xs font-semibold text-indigo-300">
+                          You
+                        </span>
+                      )}
+
+                      {!isSelf && (
+                        <button
+                          onClick={() => void toggleFavorite(p.id)}
+                          disabled={favoriteBusy}
+                          className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-bold transition ${
+                            isFavorite
+                              ? 'border-amber-400/40 bg-amber-500/20 text-amber-300'
+                              : 'border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700'
+                          } disabled:opacity-50`}
+                          title={isFavorite ? 'Remove favorite' : 'Save favorite'}
+                        >
+                          {favoriteBusy ? '...' : isFavorite ? '★ Saved' : '☆ Save'}
+                        </button>
+                      )}
                     </div>
 
                     <div className="mt-2 flex flex-wrap gap-2">
@@ -887,22 +1134,23 @@ export default function ExploreClient() {
                   </div>
 
                   <div className="flex flex-col items-end gap-2">
-                    <button
-                      onClick={() => void toggleFavorite(p.id)}
-                      disabled={favoriteBusy}
-                      className={`rounded-full border px-3 py-1.5 text-xs font-bold transition ${
-                        isFavorite
-                          ? 'border-amber-400/40 bg-amber-500/20 text-amber-300'
-                          : 'border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700'
-                      } disabled:opacity-50`}
-                      title={isFavorite ? 'Remove favorite' : 'Save favorite'}
-                    >
-                      {favoriteBusy ? '...' : isFavorite ? '★ Saved' : '☆ Save'}
-                    </button>
-
                     <div className="whitespace-nowrap rounded-full bg-indigo-600 px-4 py-2.5 text-base font-bold">
                       ${p.hourly_price ?? 0}/h
                     </div>
+
+                    <span
+                      className={`rounded-full border px-3 py-1 text-xs font-semibold ${online.className}`}
+                    >
+                      {online.label}
+                    </span>
+
+                    {busyMeta ? (
+                      <span
+                        className={`rounded-full border px-3 py-1 text-xs font-semibold ${busyMeta.badgeClassName}`}
+                      >
+                        {busyMeta.badgeLabel}
+                      </span>
+                    ) : null}
                   </div>
                 </div>
 
@@ -912,9 +1160,7 @@ export default function ExploreClient() {
                 />
 
                 {p.bio && (
-                  <p className="mt-4 text-sm leading-6 text-slate-300">
-                    {shortBio(p.bio)}
-                  </p>
+                  <p className="mt-4 text-sm leading-6 text-slate-300">{shortBio(p.bio)}</p>
                 )}
 
                 <div className="mt-4">
@@ -977,6 +1223,12 @@ export default function ExploreClient() {
                   </div>
                 </div>
 
+                {busyMeta ? (
+                  <div className="mt-4 rounded-xl border border-white/10 bg-slate-950 px-4 py-3 text-sm text-slate-300">
+                    {busyMeta.description}
+                  </div>
+                ) : null}
+
                 <div className="mt-auto flex gap-2 pt-5">
                   <button
                     onClick={() => router.push(`/profile/${p.id}`)}
@@ -985,7 +1237,15 @@ export default function ExploreClient() {
                     Open Profile
                   </button>
 
-                  {p.id !== currentUserId && (
+                  {isSelf ? (
+                    <button
+                      type="button"
+                      onClick={() => window.alert("You can't start chat with yourself.")}
+                      className="flex-1 rounded-xl bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-300 hover:bg-slate-700"
+                    >
+                      This is you
+                    </button>
+                  ) : (
                     <div className="flex-1">
                       <StartChatButton
                         otherUserId={p.id}

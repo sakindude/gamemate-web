@@ -1,16 +1,26 @@
-// FILE START: lib/money.ts
-export function formatMoney(cents: number | null | undefined, currencySymbol = '₺') {
-  const safe = Number(cents || 0)
-  return `${currencySymbol}${(safe / 100).toFixed(2)}`
+export function formatMoneyFromCents(
+  value: number | null | undefined,
+  currency: string = "USD"
+): string {
+  const amount = (Number(value || 0) / 100).toFixed(2)
+
+  if (currency === "USD") {
+    return `$${amount}`
+  }
+
+  // fallback (ileride başka currency açarsan)
+  return `${amount} ${currency}`
 }
 
-export function toCents(amount: number | string) {
-  const numeric = typeof amount === 'string' ? Number(amount) : amount
-  if (!Number.isFinite(numeric)) return 0
-  return Math.round(numeric * 100)
-}
+export function formatMoney(
+  value: number | null | undefined,
+  currency: string = "USD"
+): string {
+  const amount = Number(value || 0).toFixed(2)
 
-export function fromCents(cents: number | null | undefined) {
-  return Number(cents || 0) / 100
+  if (currency === "USD") {
+    return `$${amount}`
+  }
+
+  return `${amount} ${currency}`
 }
-// FILE END: lib/money.ts

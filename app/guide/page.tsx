@@ -101,110 +101,163 @@ export default function GuidePage() {
         <div className="mb-6">
           <h1 className="text-4xl font-bold">How GameMate Works</h1>
           <p className="mt-2 text-slate-400">
-            A quick guide to booking, starting, completing, and safely using GameMate.
+            Book a GameMate by duration, start together when ready, and complete the
+            session safely on-platform.
           </p>
         </div>
 
         <div className="mb-6 grid gap-4 md:grid-cols-3">
           <MiniTip
-            title="Booking"
-            description="Choose a GameMate, pick a time, and confirm your session."
+            title="Duration Based"
+            description="Choose a GameMate and select how long you want the session to last."
           />
           <MiniTip
-            title="Start Session"
-            description='At the scheduled time, both sides press "Start Session" to begin.'
+            title="Two-Sided Start"
+            description='The timer starts only when both sides press "Start Session".'
           />
           <MiniTip
-            title="Need help?"
-            description="If something goes wrong, report the issue instead of handling it off-platform."
+            title="Protected Payment"
+            description="Payment is held for safety and is only released after the session flow is completed."
           />
         </div>
 
         <div className="space-y-6">
           <GuideCard step="1" title="Find a GameMate">
             <p>
-              Go to the Explore page and browse available GameMates by game, language,
+              Go to the Explore page and browse online GameMates by game, language,
               communication style, country, and price.
             </p>
             <p>
               Open profiles to learn more before booking. Check their bio, supported
-              games, languages, and other profile details.
+              games, hourly rate, and other profile details.
             </p>
           </GuideCard>
 
-          <GuideCard step="2" title="Book a Session">
+          <GuideCard step="2" title="Choose a Session Duration">
             <p>
-              Once you find the right GameMate, select a suitable time and create a
-              booking.
+              Instead of selecting a date or time slot, you choose how long you want the
+              session to be.
             </p>
             <p>
-              Your booking reserves the time slot and starts the session process inside
-              the platform.
+              Example durations may include 1 hour, 2 hours, or 3 hours depending on the
+              GameMate’s settings.
             </p>
           </GuideCard>
 
-          <GuideCard step="3" title="Join on Time">
+          <GuideCard step="3" title="Pay and Send the Request">
             <p>
-              At the scheduled time, both the buyer and the GameMate should be ready.
+              Once you choose the duration, the total price is calculated from the
+              GameMate’s hourly rate.
             </p>
             <p>
-              To officially begin, both sides must press{' '}
+              Payment is taken at checkout, but it is not released to the GameMate right
+              away. It stays protected on-platform until the session is completed or
+              reviewed.
+            </p>
+          </GuideCard>
+
+          <GuideCard step="4" title="Wait for Accept or Reject">
+            <p>
+              The GameMate can accept or reject your request.
+            </p>
+            <p>
+              If the request is rejected, the payment does not continue into a normal
+              session flow. If it is accepted, the session becomes ready and you can use
+              chat to coordinate.
+            </p>
+          </GuideCard>
+
+          <GuideCard step="5" title="Chat and Get Ready">
+            <p>
+              After acceptance, both sides can talk through the platform chat to decide
+              how they want to connect and play.
+            </p>
+            <p>
+              This is where you confirm details like the game, voice method, or anything
+              else needed before starting.
+            </p>
+          </GuideCard>
+
+          <GuideCard step="6" title="Start the Session Together">
+            <p>
+              The session officially begins only when both sides press{' '}
               <span className="font-semibold text-slate-200">Start Session</span>.
             </p>
-            <p className="text-slate-400">
-              If one side does not join in time, it may become a no-show.
+            <p>
+              In the new system, Start Session is important because it starts the actual
+              countdown timer for the purchased duration.
             </p>
           </GuideCard>
 
-          <GuideCard step="4" title="Enjoy the Session">
+          <GuideCard step="7" title="Play While the Countdown Runs">
             <p>
-              After both sides start the session, the booking becomes active and you can
-              play, chat, or spend time together according to the booking.
+              Once both sides start, the countdown begins and the session becomes active.
             </p>
             <p>
-              Keep communication respectful and use the platform as intended.
-            </p>
-          </GuideCard>
-
-          <GuideCard step="5" title="Complete the Session">
-            <p>
-              When the session is over, complete it through the platform.
-            </p>
-            <p>
-              This helps keep payment flow, logs, and support actions clear for both
-              sides.
+              The remaining time is the official session time purchased through the
+              platform.
             </p>
           </GuideCard>
 
-          <GuideCard step="6" title="Report Problems if Needed">
+          <GuideCard step="8" title="Extend the Session if Both Sides Agree">
             <p>
-              If something serious goes wrong, use the issue reporting system instead of
-              trying to solve payment or dispute problems outside the platform.
+              If you want more time, the buyer can request an extension.
             </p>
-            <p>You can report issues such as:</p>
-            <ul className="list-disc space-y-2 pl-5">
-              <li>No-show (someone did not join)</li>
-              <li>Late arrival</li>
-              <li>Profile mismatch</li>
-              <li>Harassment or bad behavior</li>
-              <li>Technical issues that prevented the session</li>
-            </ul>
+            <p>
+              The buyer confirms the extra payment, and the GameMate must accept the
+              extension before the timer is increased.
+            </p>
+          </GuideCard>
+
+          <GuideCard step="9" title="End the Session">
+            <p>
+              When the time finishes, the platform can notify both sides that the session
+              duration has ended.
+            </p>
+            <p>
+              If both sides want to stop earlier, an end request flow can be used instead
+              of forcing the session to run forever.
+            </p>
+          </GuideCard>
+
+          <GuideCard step="10" title="Complete or Report a Problem">
+            <p>
+              After the session, both sides should confirm completion through the
+              platform.
+            </p>
+            <p>
+              If something went wrong, use the problem reporting flow instead of trying to
+              solve payment or dispute issues outside the platform.
+            </p>
           </GuideCard>
 
           <InfoCard title="Important Terms">
             <div className="grid gap-4 md:grid-cols-2">
-              <MiniTip title="No-show" description="A no-show means one side did not join within the allowed time window." />
-              <MiniTip title="Dispute" description="A dispute is a formal issue report reviewed by the platform." />
-              <MiniTip title="Payout hold" description="Payments may be temporarily held before being released for safety." />
-              <MiniTip title="Profile mismatch" description="This means the person or service experience did not reasonably match the profile." />
+              <MiniTip
+                title="Duration"
+                description="The amount of time purchased for a session, such as 1 hour or 2 hours."
+              />
+              <MiniTip
+                title="Start Session"
+                description="The action both sides use to officially begin the paid countdown timer."
+              />
+              <MiniTip
+                title="Payout hold"
+                description="Payment is temporarily held for safety and is not released instantly to the GameMate."
+              />
+              <MiniTip
+                title="Extension"
+                description="Extra session time requested by the buyer, paid for on-platform, and accepted by the GameMate."
+              />
             </div>
           </InfoCard>
 
           <InfoCard title="Tips for Buyers">
             <ul className="list-disc space-y-2 pl-5">
-              <li>Read profiles carefully before booking.</li>
-              <li>Be on time and press Start Session when the session begins.</li>
-              <li>Keep payments on-platform for protection.</li>
+              <li>Read profiles carefully before choosing a GameMate.</li>
+              <li>Choose the duration you actually want before paying.</li>
+              <li>Use chat to coordinate before pressing Start Session.</li>
+              <li>Only start when both sides are genuinely ready to begin.</li>
               <li>Use the report system if there is a serious issue.</li>
             </ul>
           </InfoCard>
@@ -212,20 +265,21 @@ export default function GuidePage() {
           <InfoCard title="Tips for GameMates">
             <ul className="list-disc space-y-2 pl-5">
               <li>Keep your profile accurate and up to date.</li>
-              <li>Only open availability when you can truly attend.</li>
-              <li>Join on time and behave professionally.</li>
-              <li>Do not move payments or bookings off-platform.</li>
+              <li>Only stay online when you are genuinely available.</li>
+              <li>Review requests before accepting them.</li>
+              <li>Start the session only when you are ready to begin the paid timer.</li>
+              <li>Do not move payments or session handling off-platform.</li>
             </ul>
           </InfoCard>
 
           <InfoCard title="Safety Reminder">
             <p>
-              GameMate is safest when everything stays on-platform: booking, session
-              flow, payments, and issue reporting.
+              GameMate is safest when the full flow stays on-platform: request, payment,
+              start, duration handling, completion, and issue reporting.
             </p>
             <p className="text-slate-400">
-              If you move outside the platform, protection becomes weaker and support may
-              be limited.
+              If you move payment or session settlement outside the platform, protection
+              becomes weaker and support may be limited.
             </p>
           </InfoCard>
         </div>

@@ -66,7 +66,7 @@ function getProfileName(profile?: ProfileRow | null) {
 }
 
 function formatMoneyFromCents(value: number | null | undefined) {
-  return `₺${(Number(value || 0) / 100).toFixed(2)}`
+  return `$${(Number(value || 0) / 100).toFixed(2)}`
 }
 
 function collectIdsFromPayload(payload: any) {

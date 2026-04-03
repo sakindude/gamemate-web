@@ -71,6 +71,10 @@ export default function TopNav({ userEmail = '' }: TopNavProps) {
   const [chatBadge, setChatBadge] = useState<number>(0)
   const [supportBadge, setSupportBadge] = useState<number>(0)
 
+  const [isSeller, setIsSeller] = useState(false)
+  const [isOnline, setIsOnline] = useState(false)
+  const [onlineBusy, setOnlineBusy] = useState(false)
+
   const mountedRef = useRef(true)
   const loadingRef = useRef(false)
   const bootingRef = useRef(false)
@@ -185,6 +189,8 @@ export default function TopNav({ userEmail = '' }: TopNavProps) {
       setSessionsBadge(0)
       setChatBadge(0)
       setSupportBadge(0)
+      setIsSeller(false)
+      setIsOnline(false)
       return
     }
 
@@ -244,6 +250,9 @@ export default function TopNav({ userEmail = '' }: TopNavProps) {
           userEmail ||
           ''
       )
+
+      setIsSeller(!!profile?.is_seller)
+      setIsOnline(!!profile?.is_online)
 
       setProfileReady(true)
 
@@ -374,6 +383,9 @@ export default function TopNav({ userEmail = '' }: TopNavProps) {
       setUserId((prev) => (prev === nextUserId ? prev : nextUserId))
       if (nextUserId) {
         bootDoneRef.current = true
+      } else {
+        setIsSeller(false)
+        setIsOnline(false)
       }
     })
 
@@ -473,14 +485,46 @@ export default function TopNav({ userEmail = '' }: TopNavProps) {
     }
   }, [userId, pathname, playChatNotify, playSessionNotify])
 
+  const toggleOnline = async () => {
+    if (!userId || !isSeller || onlineBusy) return
+
+    const nextValue = !isOnline
+    setOnlineBusy(true)
+
+    const previousValue = isOnline
+    setIsOnline(nextValue)
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({ is_online: nextValue })
+      .eq('id', userId)
+
+    if (error) {
+      console.error('TopNav toggleOnline error:', error)
+      setIsOnline(previousValue)
+    }
+
+    setOnlineBusy(false)
+  }
+
   const logout = async () => {
+    if (userId && isSeller && isOnline) {
+      try {
+        await supabase
+          .from('profiles')
+          .update({ is_online: false })
+          .eq('id', userId)
+      } catch (error) {
+        console.error('TopNav logout offline update error:', error)
+      }
+    }
+
     await supabase.auth.signOut()
     router.push('/login')
   }
 
   const isSessionsActive = pathname === '/sessions'
   const isChatActive = pathname.startsWith('/chat')
-  const isAvailabilityActive = pathname === '/availability'
   const isGuideActive = pathname === '/guide'
   const isRulesActive = pathname === '/rules'
 
@@ -504,7 +548,6 @@ export default function TopNav({ userEmail = '' }: TopNavProps) {
             <NavLink href="/explore" active={pathname === '/explore'} label="Explore" />
             <NavLink href="/sessions" active={isSessionsActive} label="Sessions" badgeCount={sessionsBadge} />
             <NavLink href="/chat" active={isChatActive} label="Chat" badgeCount={chatBadge} />
-            <NavLink href="/availability" active={isAvailabilityActive} label="Availability" />
             <NavLink href="/guide" active={isGuideActive} label="Guide" />
             <NavLink href="/rules" active={isRulesActive} label="Rules" />
             <NavLink href="/profile-edit" active={pathname === '/profile-edit'} label="Profile" />
@@ -513,6 +556,21 @@ export default function TopNav({ userEmail = '' }: TopNavProps) {
         </div>
 
         <div className="flex items-center gap-3">
+          {isSeller && (
+            <button
+              onClick={toggleOnline}
+              disabled={onlineBusy}
+              className={`rounded-xl px-4 py-2 text-sm font-semibold transition disabled:opacity-60 ${
+                isOnline
+                  ? 'bg-emerald-600 text-white hover:bg-emerald-500'
+                  : 'bg-slate-800 text-slate-200 hover:bg-slate-700'
+              }`}
+              title={isOnline ? 'You are visible in Explore' : 'You are hidden from Explore'}
+            >
+              {onlineBusy ? 'Saving...' : isOnline ? 'Online' : 'Offline'}
+            </button>
+          )}
+
           <div className="hidden rounded-xl bg-slate-900 px-3 py-2 text-xs font-medium text-slate-300 md:block">
             Local time: <span className="font-bold text-slate-100">{localTime}</span>
           </div>
@@ -522,7 +580,7 @@ export default function TopNav({ userEmail = '' }: TopNavProps) {
             className="rounded-xl bg-slate-800 px-4 py-2 text-sm font-semibold text-emerald-400 hover:bg-slate-700"
             title="Open balance"
           >
-            ₺{balanceDisplay.toFixed(2)}
+            ${balanceDisplay.toFixed(2)}
           </button>
 
           <div className="w-[180px] rounded-xl bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-200">
@@ -544,7 +602,6 @@ export default function TopNav({ userEmail = '' }: TopNavProps) {
         <NavLink href="/explore" active={pathname === '/explore'} label="Explore" />
         <NavLink href="/sessions" active={isSessionsActive} label="Sessions" badgeCount={sessionsBadge} />
         <NavLink href="/chat" active={isChatActive} label="Chat" badgeCount={chatBadge} />
-        <NavLink href="/availability" active={isAvailabilityActive} label="Availability" />
         <NavLink href="/guide" active={isGuideActive} label="Guide" />
         <NavLink href="/rules" active={isRulesActive} label="Rules" />
         <NavLink href="/profile-edit" active={pathname === '/profile-edit'} label="Profile" />
