@@ -1,6 +1,14 @@
+// START_FILE: components/ProfileCompletionModal.tsx
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import {
+  type Dispatch,
+  type SetStateAction,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react'
 import { createPortal } from 'react-dom'
 import { supabase } from '@/lib/supabase'
 import {
@@ -15,6 +23,14 @@ type ProfileCompletionModalProps = {
   onClose: () => void
   userId: string | null
   onSaved?: () => void
+}
+
+type ProfileCompletionRow = {
+  country: string | null
+  gender: string | null
+  languages: string[] | null
+  communication_methods: string[] | null
+  primary_games: string[] | null
 }
 
 const GENDER_OPTIONS = [
@@ -74,6 +90,15 @@ function CompactChips({
   )
 }
 
+function toggleArrayValue(
+  value: string,
+  setItems: Dispatch<SetStateAction<string[]>>
+) {
+  setItems((prev) =>
+    prev.includes(value) ? prev.filter((item) => item !== value) : [...prev, value]
+  )
+}
+
 export default function ProfileCompletionModal({
   isOpen,
   onClose,
@@ -81,6 +106,7 @@ export default function ProfileCompletionModal({
   onSaved,
 }: ProfileCompletionModalProps) {
   const [mounted, setMounted] = useState(false)
+  const [loadedUserId, setLoadedUserId] = useState<string | null>(null)
 
   const [country, setCountry] = useState('')
   const [gender, setGender] = useState('')
@@ -113,6 +139,9 @@ export default function ProfileCompletionModal({
 
   useEffect(() => {
     if (!isOpen || !userId) return
+    if (loadedUserId === userId) return
+
+    let cancelled = false
 
     const loadProfile = async () => {
       setLoadingProfile(true)
@@ -123,7 +152,9 @@ export default function ProfileCompletionModal({
         .from('profiles')
         .select('country, gender, languages, communication_methods, primary_games')
         .eq('id', userId)
-        .single()
+        .maybeSingle()
+
+      if (cancelled) return
 
       if (error) {
         setMessage(error.message || 'Could not load profile.')
@@ -132,27 +163,37 @@ export default function ProfileCompletionModal({
         return
       }
 
-      setCountry(data?.country || '')
-      setGender(data?.gender || '')
-      setLanguages(data?.languages || [])
-      setCommunicationMethods(data?.communication_methods || [])
-      setPrimaryGames(data?.primary_games || [])
+      const row = (data || null) as ProfileCompletionRow | null
+
+      setCountry(row?.country || '')
+      setGender(row?.gender || '')
+      setLanguages(row?.languages || [])
+      setCommunicationMethods(row?.communication_methods || [])
+      setPrimaryGames(row?.primary_games || [])
+      setLoadedUserId(userId)
       setLoadingProfile(false)
     }
 
     void loadProfile()
-  }, [isOpen, userId])
 
-  const toggleArrayValue = (
-    value: string,
-    setItems: React.Dispatch<React.SetStateAction<string[]>>
-  ) => {
-    setItems((prev) =>
-      prev.includes(value)
-        ? prev.filter((item) => item !== value)
-        : [...prev, value]
-    )
-  }
+    return () => {
+      cancelled = true
+    }
+  }, [isOpen, loadedUserId, userId])
+
+  useEffect(() => {
+    if (isOpen) return
+
+    setMessage('')
+    setMessageType('')
+    setSaving(false)
+    setLoadingProfile(false)
+  }, [isOpen])
+
+  const closeModal = useCallback(() => {
+    if (saving) return
+    onClose()
+  }, [onClose, saving])
 
   const handleSave = async () => {
     if (!userId || saving) return
@@ -195,7 +236,7 @@ export default function ProfileCompletionModal({
     const { error } = await supabase
       .from('profiles')
       .update({
-        country,
+        country: country.trim(),
         gender,
         languages,
         communication_methods: communicationMethods,
@@ -211,6 +252,7 @@ export default function ProfileCompletionModal({
     }
 
     setSaving(false)
+    setLoadedUserId(userId)
     onSaved?.()
   }
 
@@ -225,9 +267,7 @@ export default function ProfileCompletionModal({
       }}
     >
       <div
-        onClick={() => {
-          if (!saving) onClose()
-        }}
+        onClick={closeModal}
         style={{
           position: 'absolute',
           inset: 0,
@@ -395,9 +435,7 @@ export default function ProfileCompletionModal({
                 <CompactChips
                   options={COMMUNICATION_OPTIONS}
                   selected={communicationMethods}
-                  onToggle={(value) =>
-                    toggleArrayValue(value, setCommunicationMethods)
-                  }
+                  onToggle={(value) => toggleArrayValue(value, setCommunicationMethods)}
                 />
               </div>
 
@@ -420,7 +458,7 @@ export default function ProfileCompletionModal({
                 />
               </div>
 
-              {message && (
+              {message ? (
                 <p
                   style={{
                     fontSize: '14px',
@@ -429,7 +467,7 @@ export default function ProfileCompletionModal({
                 >
                   {message}
                 </p>
-              )}
+              ) : null}
             </>
           )}
         </div>
@@ -444,9 +482,7 @@ export default function ProfileCompletionModal({
         >
           <button
             type="button"
-            onClick={() => {
-              if (!saving) onClose()
-            }}
+            onClick={closeModal}
             disabled={saving}
             style={{
               width: '100%',
@@ -466,7 +502,7 @@ export default function ProfileCompletionModal({
 
           <button
             type="button"
-            onClick={handleSave}
+            onClick={() => void handleSave()}
             disabled={saving || loadingProfile}
             style={{
               width: '100%',
@@ -489,3 +525,4 @@ export default function ProfileCompletionModal({
     document.body
   )
 }
+// END_FILE

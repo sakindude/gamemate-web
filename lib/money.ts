@@ -1,26 +1,40 @@
 export function formatMoneyFromCents(
   value: number | null | undefined,
-  currency: string = "USD"
+  currency: string = 'USD'
 ): string {
-  const amount = (Number(value || 0) / 100).toFixed(2)
+  const safe = Number(value || 0)
+  const amount = safe / 100
 
-  if (currency === "USD") {
-    return `$${amount}`
+  const hasFraction = safe % 100 !== 0
+
+  const formatted = new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: hasFraction ? 2 : 0,
+    maximumFractionDigits: 2,
+  }).format(amount)
+
+  if (currency === 'USD') {
+    return `$${formatted}`
   }
 
-  // fallback (ileride başka currency açarsan)
-  return `${amount} ${currency}`
+  return `${formatted} ${currency}`
 }
 
 export function formatMoney(
   value: number | null | undefined,
-  currency: string = "USD"
+  currency: string = 'USD'
 ): string {
-  const amount = Number(value || 0).toFixed(2)
+  const safe = Number(value || 0)
+  const roundedToCents = Math.round(safe * 100) / 100
+  const hasFraction = Math.abs(roundedToCents % 1) > 0.000001
 
-  if (currency === "USD") {
-    return `$${amount}`
+  const formatted = new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: hasFraction ? 2 : 0,
+    maximumFractionDigits: 2,
+  }).format(roundedToCents)
+
+  if (currency === 'USD') {
+    return `$${formatted}`
   }
 
-  return `${amount} ${currency}`
+  return `${formatted} ${currency}`
 }

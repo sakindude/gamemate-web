@@ -24,3 +24,124 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* ========================= */
+/* HORDE THEME EXTENSION */
+/* ========================= */
+
+.horde-bg {
+  background:
+    radial-gradient(circle at top, rgba(120, 30, 20, 0.24), transparent 38%),
+    linear-gradient(180deg, #12070a 0%, #0f0608 100%);
+}
+
+.horde-frame {
+  position: relative;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #1b0b0f 0%, #14080c 100%);
+  border: 1px solid rgba(120, 40, 30, 0.6);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 120, 80, 0.08),
+    inset 0 -2px 8px rgba(0, 0, 0, 0.6),
+    0 0 18px rgba(120, 30, 20, 0.25);
+}
+
+.horde-frame::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  padding: 1px;
+  background: linear-gradient(
+    145deg,
+    rgba(255, 120, 80, 0.25),
+    rgba(80, 20, 20, 0.6)
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.horde-glow {
+  box-shadow:
+    0 0 0 1px rgba(255, 90, 60, 0.2),
+    0 0 20px rgba(255, 60, 40, 0.25);
+}
+
+.horde-active {
+  background: linear-gradient(
+    90deg,
+    rgba(120, 30, 20, 0.5) 0%,
+    rgba(50, 15, 15, 0.3) 100%
+  );
+  border: 1px solid rgba(255, 80, 50, 0.5);
+  box-shadow:
+    inset 0 0 10px rgba(255, 60, 40, 0.25),
+    0 0 10px rgba(255, 60, 40, 0.15);
+}
+
+.horde-button {
+  background: linear-gradient(180deg, #2a0f12 0%, #1a080b 100%);
+  border: 1px solid rgba(150, 50, 40, 0.6);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 120, 80, 0.08),
+    0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+.horde-button:hover {
+  background: linear-gradient(180deg, #351416 0%, #220b0e 100%);
+}
+
+.horde-online {
+  background: linear-gradient(180deg, #14532d 0%, #0f3a21 100%);
+  border: 1px solid #1a8f6c;
+  box-shadow: 0 0 10px rgba(0, 255, 120, 0.15);
+}
+
+.horde-avatar {
+  box-shadow: 0 0 12px rgba(255, 80, 50, 0.25);
+  outline: 1px solid rgba(255, 106, 61, 0.3);
+}
+
+/* ========================= */
+/* HORDE GLOBAL BACKGROUND FIX */
+/* ========================= */
+
+.horde-root {
+  position: relative;
+  background:
+    radial-gradient(circle at top, rgba(160, 40, 25, 0.25), transparent 35%),
+    linear-gradient(180deg, #140607 0%, #0d0304 100%);
+}
+
+/* SOL KIRMIZI GLOW */
+.horde-root::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 2px;
+  height: 100%;
+  background: linear-gradient(180deg, #ff6a3d, transparent);
+  box-shadow: 0 0 12px rgba(255, 80, 40, 0.7);
+  opacity: 0.7;
+}
+
+/* SAĞ KIRMIZI GLOW */
+.horde-root::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 2px;
+  height: 100%;
+  background: linear-gradient(180deg, #ff6a3d, transparent);
+  box-shadow: 0 0 12px rgba(255, 80, 40, 0.7);
+  opacity: 0.7;
+}

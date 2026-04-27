@@ -76,10 +76,8 @@ export const LANGUAGE_OPTIONS = sortLanguages([
 export const COMMUNICATION_OPTIONS = [
   'Discord',
   'Steam',
-  'In-game Voice',
-  'In-game Text',
-  'Teamspeak',
-  'Party Chat',
+  'In-Game Voice Chat',
+  'TeamSpeak',
   'Text Only',
 ]
 
